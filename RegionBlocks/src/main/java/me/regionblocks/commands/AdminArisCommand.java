@@ -2,7 +2,6 @@ package me.regionblocks.commands;
 
 import me.regionblocks.RegionBlocks;
 import me.regionblocks.integration.ArisDonateBridge;
-import me.regionblocks.integration.ShopHeads;
 import me.regionblocks.managers.ArisManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
@@ -108,7 +107,6 @@ public class AdminArisCommand implements CommandExecutor {
             case "reload" -> {
                 plugin.reloadConfig();
                 ArisDonateBridge.reloadPrices(plugin);
-                ShopHeads.reload(plugin);
                 int sCount = ArisDonateBridge.spherePrices().size();
                 int bCount = ArisDonateBridge.ballPrices().size();
                 int kCount = ArisDonateBridge.kitPrices().size();

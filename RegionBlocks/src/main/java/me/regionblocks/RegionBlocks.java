@@ -2,7 +2,6 @@ package me.regionblocks;
 
 import me.regionblocks.commands.*;
 import me.regionblocks.integration.ArisDonateBridge;
-import me.regionblocks.integration.ShopHeads;
 import me.regionblocks.listeners.*;
 import me.regionblocks.managers.ArisItemManager;
 import me.regionblocks.managers.ArisManager;
@@ -23,7 +22,6 @@ public class RegionBlocks extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         ArisDonateBridge.reloadPrices(this);
-        ShopHeads.reload(this);
 
         ArisItemManager.init(this);
         LegendaryItemManager.init(this);
