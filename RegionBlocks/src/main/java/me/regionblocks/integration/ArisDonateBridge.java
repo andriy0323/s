@@ -4,7 +4,9 @@ import me.arisdonate.ArisDonatePlugin;
 import me.arisdonate.managers.KitManager;
 import me.arisdonate.managers.SphereManager;
 import me.arisdonate.models.Sphere;
+import me.regionblocks.RegionBlocks;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
 
 import java.util.Collections;
@@ -13,31 +15,43 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Тонкая обёртка над плагином ArisDonate.
- * Используется ShopListener'ом, чтобы добавить в /shop разделы:
- *   - Сферы (обычные сферы из ArisDonate-конфига с price>0)
- *   - Шары  (премиум-сферы из ArisDonate-конфига с price=0 — теперь продаются)
- *   - Киты  (все киты из ArisDonate-конфига; покупаются очень дорого)
+ * Тонкая обёртка над плагином ArisDonate + загрузка прайс-листа магазина
+ * из RegionBlocks/config.yml.
  *
- * Все цены — это цены в Aris-coins (валюта RegionBlocks), независимые от
- * Aris-coins-валюты ArisDonate (там, кажется, своя экономика).
+ * Используется ShopListener'ом, чтобы добавить в /shop разделы:
+ *   - Сферы (обычные сферы из ArisDonate-конфига)
+ *   - Шары  (премиум-сферы из ArisDonate-конфига)
+ *   - Киты  (все киты из ArisDonate-конфига; покупаются дорого)
+ *
+ * Цены — Aris-coins (валюта RegionBlocks), независимые от Aris-coins
+ * самого ArisDonate.
  */
 public final class ArisDonateBridge {
 
-    /** Цены сфер (id → Aris-coins). */
-    public static final Map<String, Long> SPHERE_PRICES = sphereMap();
-
-    /** Цены шаров (премиум-сфер). */
-    public static final Map<String, Long> BALL_PRICES = ballMap();
-
-    /** Цены китов. Очень дорогие — по просьбе пользователя. */
-    public static final Map<String, Long> KIT_PRICES = kitMap();
+    private static Map<String, Long> spherePrices = Collections.emptyMap();
+    private static Map<String, Long> ballPrices   = Collections.emptyMap();
+    private static Map<String, Long> kitPrices    = Collections.emptyMap();
 
     private ArisDonateBridge() {}
 
-    public static boolean isAvailable() {
-        return get() != null;
+    /** Перечитывает прайс-лист из RegionBlocks/config.yml. */
+    public static void reloadPrices(RegionBlocks plugin) {
+        spherePrices = loadSection(plugin, "shop.spheres");
+        ballPrices   = loadSection(plugin, "shop.balls");
+        kitPrices    = loadSection(plugin, "shop.kits");
     }
+
+    private static Map<String, Long> loadSection(RegionBlocks plugin, String path) {
+        ConfigurationSection sec = plugin.getConfig().getConfigurationSection(path);
+        if (sec == null) return Collections.emptyMap();
+        Map<String, Long> m = new LinkedHashMap<>();
+        for (String key : sec.getKeys(false)) {
+            m.put(key.toLowerCase(), sec.getLong(key));
+        }
+        return Collections.unmodifiableMap(m);
+    }
+
+    public static boolean isAvailable() { return get() != null; }
 
     public static ArisDonatePlugin get() {
         Plugin pl = Bukkit.getPluginManager().getPlugin("ArisDonate");
@@ -55,21 +69,21 @@ public final class ArisDonateBridge {
         return ad == null ? null : ad.getKitManager();
     }
 
-    /** Список сфер, попадающих в раздел «Сферы» (price>0 в конфиге ArisDonate). */
+    /** Список сфер, попадающих в раздел «Сферы» (есть запись в config.yml). */
     public static List<Sphere> regularSpheres() {
         SphereManager sm = spheres();
         if (sm == null) return Collections.emptyList();
         return sm.all().stream()
-                .filter(s -> SPHERE_PRICES.containsKey(s.id()))
+                .filter(s -> spherePrices.containsKey(s.id()))
                 .toList();
     }
 
-    /** Список сфер, попадающих в раздел «Шары» (премиум, изначально только из китов). */
+    /** Список сфер, попадающих в раздел «Шары» (премиум). */
     public static List<Sphere> premiumBalls() {
         SphereManager sm = spheres();
         if (sm == null) return Collections.emptyList();
         return sm.all().stream()
-                .filter(s -> BALL_PRICES.containsKey(s.id()))
+                .filter(s -> ballPrices.containsKey(s.id()))
                 .toList();
     }
 
@@ -78,50 +92,15 @@ public final class ArisDonateBridge {
         KitManager km = kits();
         if (km == null) return Collections.emptyList();
         return km.all().stream()
-                .filter(k -> KIT_PRICES.containsKey(k.id))
+                .filter(k -> kitPrices.containsKey(k.id))
                 .toList();
     }
 
-    public static long sphereAris(String id)  { return SPHERE_PRICES.getOrDefault(id, 0L); }
-    public static long ballAris(String id)    { return BALL_PRICES.getOrDefault(id, 0L); }
-    public static long kitAris(String id)     { return KIT_PRICES.getOrDefault(id, 0L); }
+    public static long sphereAris(String id) { return spherePrices.getOrDefault(id, 0L); }
+    public static long ballAris(String id)   { return ballPrices.getOrDefault(id, 0L); }
+    public static long kitAris(String id)    { return kitPrices.getOrDefault(id, 0L); }
 
-    private static Map<String, Long> sphereMap() {
-        Map<String, Long> m = new LinkedHashMap<>();
-        m.put("bounce",   200L);
-        m.put("ember",    250L);
-        m.put("owl",      180L);
-        m.put("tide",     350L);
-        m.put("force",    500L);
-        m.put("bulwark",  600L);
-        m.put("gale",     450L);
-        m.put("vitality", 700L);
-        return Collections.unmodifiableMap(m);
-    }
-
-    private static Map<String, Long> ballMap() {
-        Map<String, Long> m = new LinkedHashMap<>();
-        m.put("nebula",   2000L);
-        m.put("cosmos",   2500L);
-        m.put("phoenix",  3500L);
-        m.put("phantom",  6000L);
-        m.put("chaos",    9000L);
-        return Collections.unmodifiableMap(m);
-    }
-
-    private static Map<String, Long> kitMap() {
-        Map<String, Long> m = new LinkedHashMap<>();
-        m.put("spark",      5000L);
-        m.put("luna",       8000L);
-        m.put("stellar",   12000L);
-        m.put("nova",      18000L);
-        m.put("comet",     25000L);
-        m.put("galaxy",    35000L);
-        m.put("nebula",    50000L);
-        m.put("cosmos",    70000L);
-        m.put("phoenix",   90000L);
-        m.put("aris",     120000L);
-        m.put("arisplus", 150000L);
-        return Collections.unmodifiableMap(m);
-    }
+    public static Map<String, Long> spherePrices() { return spherePrices; }
+    public static Map<String, Long> ballPrices()   { return ballPrices; }
+    public static Map<String, Long> kitPrices()    { return kitPrices; }
 }

@@ -1,6 +1,7 @@
 package me.regionblocks.commands;
 
 import me.regionblocks.RegionBlocks;
+import me.regionblocks.integration.ArisDonateBridge;
 import me.regionblocks.managers.ArisManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
@@ -18,6 +19,7 @@ import java.util.Map;
  * /a set  <ник> <кол>
  * /a reset <ник>
  * /a giveall <кол>
+ * /a reload   — перезагрузить config.yml (цены магазина)
  */
 public class AdminArisCommand implements CommandExecutor {
 
@@ -101,6 +103,22 @@ public class AdminArisCommand implements CommandExecutor {
                 );
             }
 
+            // /a reload — перезагрузить config.yml плагина (цены магазина).
+            case "reload" -> {
+                plugin.reloadConfig();
+                ArisDonateBridge.reloadPrices(plugin);
+                int sCount = ArisDonateBridge.spherePrices().size();
+                int bCount = ArisDonateBridge.ballPrices().size();
+                int kCount = ArisDonateBridge.kitPrices().size();
+                sender.sendMessage(
+                    Component.text("✓ config.yml перезагружен.").color(TextColor.color(0x55FF55))
+                );
+                sender.sendMessage(
+                    Component.text("  Сфер: " + sCount + ", Шаров: " + bCount + ", Китов: " + kCount)
+                        .color(TextColor.color(0xAAAAAA))
+                );
+            }
+
             // /a reset <ник>
             case "reset" -> {
                 if (args.length < 2) { sendUsage(sender); return true; }
@@ -174,5 +192,6 @@ public class AdminArisCommand implements CommandExecutor {
         s.sendMessage(Component.text("  /a set <ник> <кол>").color(TextColor.color(0xFFFF55)));
         s.sendMessage(Component.text("  /a reset <ник>").color(TextColor.color(0xFFFF55)));
         s.sendMessage(Component.text("  /a giveall <кол>  (только онлайн)").color(TextColor.color(0xFFFF55)));
+        s.sendMessage(Component.text("  /a reload          — перезагрузить цены магазина").color(TextColor.color(0xFFFF55)));
     }
 }
