@@ -4,6 +4,8 @@ import me.arisdonate.managers.KitManager;
 import me.arisdonate.models.Sphere;
 import me.regionblocks.RegionBlocks;
 import me.regionblocks.integration.ArisDonateBridge;
+import me.regionblocks.integration.TrapkiBridge;
+import me.trapki.models.TrapType;
 import me.regionblocks.managers.ArisItemManager;
 import me.regionblocks.managers.LegendaryItemManager;
 import me.regionblocks.managers.MinecartItemManager;
@@ -36,11 +38,17 @@ public class ShopListener implements Listener {
     private static final String TITLE_SPHERES   = "✦ Магазин — Сферы ✦";
     private static final String TITLE_BALLS     = "✦ Магазин — Шары ✦";
     private static final String TITLE_KITS      = "✦ Магазин — Киты ✦";
+    private static final String TITLE_TRAPKI    = "✦ Магазин — Трапки ✦";
 
     private static final int[] SPHERE_SLOTS = {10, 11, 12, 13, 14, 15, 16, 19};
     private static final int[] BALL_SLOTS   = {11, 12, 13, 14, 15};
     private static final int[] KIT_SLOTS    = {10, 11, 12, 13, 14, 15, 16,
                                                19, 20, 21, 24};
+
+    // Трапки: 5 малых в верхнем ряду, 5 больших во втором, scrap отдельно.
+    private static final int[] TRAP_SLOTS_SMALL = {10, 11, 12, 13, 14};
+    private static final int[] TRAP_SLOTS_LARGE = {19, 20, 21, 22, 23};
+    private static final int TRAP_SLOT_SCRAP    = 29;
 
     private final RegionBlocks plugin;
 
@@ -56,6 +64,7 @@ public class ShopListener implements Listener {
     public void openSpheres(Player p)  { openSpheresTab(p); }
     public void openBalls(Player p)    { openBallsTab(p); }
     public void openKits(Player p)     { openKitsTab(p); }
+    public void openTrapki(Player p)   { openTrapkiTab(p); }
 
     public void openPrivatesTab(Player player) {
         Inventory inv = Bukkit.createInventory(null, 54,
@@ -185,7 +194,48 @@ public class ShopListener implements Listener {
 
     // ══ Обработка кликов ═════════════════════════════════════════════════════
 
-    private enum TabKind { PRIVATES, TNT, MINECART, SPHERES, BALLS, KITS }
+    public void openTrapkiTab(Player player) {
+        Inventory inv = Bukkit.createInventory(null, 54,
+            Component.text(TITLE_TRAPKI).color(TextColor.color(0xFF55AA)));
+        fillBorder(inv);
+        long bal = plugin.getArisManager().getBalance(player.getName());
+
+        if (!TrapkiBridge.isAvailable()) {
+            inv.setItem(22, missingTrapkiItem());
+        } else {
+            TrapType[] all = TrapkiBridge.allTraps();
+            int small = 0, large = 0;
+            for (TrapType t : all) {
+                if (t.isLarge()) {
+                    if (large < TRAP_SLOTS_LARGE.length) {
+                        inv.setItem(TRAP_SLOTS_LARGE[large++], trapShopItem(t, bal));
+                    }
+                } else {
+                    if (small < TRAP_SLOTS_SMALL.length) {
+                        inv.setItem(TRAP_SLOTS_SMALL[small++], trapShopItem(t, bal));
+                    }
+                }
+            }
+
+            inv.setItem(TRAP_SLOT_SCRAP, scrapShopItem(bal));
+
+            inv.setItem(16, rgbItem(Material.REDSTONE,     "§cКрасная пыль",  "Повышает урон."));
+            inv.setItem(25, rgbItem(Material.LIME_DYE,     "§aЗелёная пыль", "Усиливает дебафы."));
+            inv.setItem(34, rgbItem(Material.LAPIS_LAZULI, "§9Синяя пыль",   "Расширяет радиус."));
+
+            inv.setItem(31, balanceDisplay(bal));
+            inv.setItem(33, infoItem("§d✦ Трапки",
+                "Купи трапку и обломок незерита,",
+                "ПКМ по блоку — трапка встанет и",
+                "активируется через 3 секунды.",
+                "Срабатывает один раз по противнику."));
+        }
+
+        addNavRow(inv, TabKind.TRAPKI);
+        player.openInventory(inv);
+    }
+
+    private enum TabKind { PRIVATES, TNT, MINECART, SPHERES, BALLS, KITS, TRAPKI }
 
     private static TabKind tabFromTitle(String plain) {
         if (plain.contains("Приваты"))   return TabKind.PRIVATES;
@@ -194,6 +244,7 @@ public class ShopListener implements Listener {
         if (plain.contains("Сферы"))     return TabKind.SPHERES;
         if (plain.contains("Шары"))      return TabKind.BALLS;
         if (plain.contains("Киты"))      return TabKind.KITS;
+        if (plain.contains("Трапки"))    return TabKind.TRAPKI;
         return null;
     }
 
@@ -256,7 +307,38 @@ public class ShopListener implements Listener {
                 int idx = indexOf(KIT_SLOTS, slot);
                 if (idx >= 0 && idx < list.size()) buyKit(player, list.get(idx));
             }
+            case TRAPKI -> {
+                if (!TrapkiBridge.isAvailable()) return;
+                if (slot == TRAP_SLOT_SCRAP) { buyScrap(player); return; }
+                TrapType type = trapAtSlot(slot);
+                if (type != null) buyTrap(player, type);
+            }
         }
+    }
+
+    private static TrapType trapAtSlot(int slot) {
+        TrapType[] all = TrapType.values();
+        int sIdx = indexOf(TRAP_SLOTS_SMALL, slot);
+        if (sIdx >= 0) {
+            int small = 0;
+            for (TrapType t : all) {
+                if (!t.isLarge()) {
+                    if (small == sIdx) return t;
+                    small++;
+                }
+            }
+        }
+        int lIdx = indexOf(TRAP_SLOTS_LARGE, slot);
+        if (lIdx >= 0) {
+            int large = 0;
+            for (TrapType t : all) {
+                if (t.isLarge()) {
+                    if (large == lIdx) return t;
+                    large++;
+                }
+            }
+        }
+        return null;
     }
 
     private static int indexOf(int[] arr, int v) {
@@ -267,11 +349,12 @@ public class ShopListener implements Listener {
     private boolean handleNavClick(Player player, int slot) {
         return switch (slot) {
             case 45 -> { openPrivatesTab(player); yield true; }
-            case 47 -> { openTntTab(player);      yield true; }
-            case 49 -> { openMinecartTab(player); yield true; }
-            case 50 -> { openSpheresTab(player);  yield true; }
-            case 51 -> { openBallsTab(player);    yield true; }
-            case 53 -> { openKitsTab(player);     yield true; }
+            case 46 -> { openTntTab(player);      yield true; }
+            case 47 -> { openMinecartTab(player); yield true; }
+            case 48 -> { openSpheresTab(player);  yield true; }
+            case 50 -> { openBallsTab(player);    yield true; }
+            case 51 -> { openKitsTab(player);     yield true; }
+            case 52 -> { openTrapkiTab(player);   yield true; }
             default -> false;
         };
     }
@@ -337,6 +420,37 @@ public class ShopListener implements Listener {
         }
         player.closeInventory();
         bought(player, kit.displayName, price);
+    }
+
+    private void buyTrap(Player player, TrapType type) {
+        if (!TrapkiBridge.isAvailable()) { player.sendMessage(trapkiMissingMsg()); return; }
+        long price = TrapkiBridge.priceOf(type);
+        if (!plugin.getArisManager().take(player.getName(), price)) { noMoney(player, price); return; }
+        ItemStack item = TrapkiBridge.createTrap(type);
+        Map<Integer, ItemStack> leftover = player.getInventory().addItem(item);
+        for (ItemStack drop : leftover.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), drop);
+        }
+        player.closeInventory();
+        bought(player, type.displayName(), price);
+    }
+
+    private void buyScrap(Player player) {
+        if (!TrapkiBridge.isAvailable()) { player.sendMessage(trapkiMissingMsg()); return; }
+        long price = TrapkiBridge.scrapPrice();
+        if (!plugin.getArisManager().take(player.getName(), price)) { noMoney(player, price); return; }
+        ItemStack item = TrapkiBridge.createScrap();
+        Map<Integer, ItemStack> leftover = player.getInventory().addItem(item);
+        for (ItemStack drop : leftover.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), drop);
+        }
+        player.closeInventory();
+        bought(player, "§6Обломок незерита", price);
+    }
+
+    private Component trapkiMissingMsg() {
+        return Component.text("✗ Плагин Trapki не установлен — трапки недоступны.")
+            .color(TextColor.color(0xFF4444));
     }
 
     private Component arisDonateMissingMsg() {
@@ -636,15 +750,92 @@ public class ShopListener implements Listener {
         return item;
     }
 
+    private ItemStack missingTrapkiItem() {
+        ItemStack item = new ItemStack(Material.BARRIER);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text("§c✗ Плагин Trapki не загружен")
+            .decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
+        meta.lore(List.of(
+            Component.text(""),
+            Component.text("  Раздел недоступен без Trapki.")
+                .color(TextColor.color(0xAAAAAA)).decoration(TextDecoration.ITALIC, false),
+            Component.text("  Установи Trapki.jar на сервер,")
+                .color(TextColor.color(0xAAAAAA)).decoration(TextDecoration.ITALIC, false),
+            Component.text("  затем перезапусти.")
+                .color(TextColor.color(0xAAAAAA)).decoration(TextDecoration.ITALIC, false),
+            Component.text("")
+        ));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack trapShopItem(TrapType type, long bal) {
+        long price = TrapkiBridge.priceOf(type);
+        ItemStack item = TrapkiBridge.createTrap(type);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return item;
+        boolean can = bal >= price;
+
+        List<Component> lore = new ArrayList<>(meta.lore() != null ? meta.lore() : List.of());
+        lore.add(Component.text(""));
+        lore.add(Component.text("  Цена: ").color(TextColor.color(0x888888))
+            .decoration(TextDecoration.ITALIC, false)
+            .append(Component.text(fmt(price) + " ✦").color(TextColor.color(0xFF8000))
+                .decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)));
+        lore.add(Component.text("  Баланс: ").color(TextColor.color(0x888888))
+            .decoration(TextDecoration.ITALIC, false)
+            .append(Component.text(fmt(bal) + " ✦")
+                .color(can ? TextColor.color(0x55FF55) : TextColor.color(0xFF4444))
+                .decoration(TextDecoration.ITALIC, false)));
+        lore.add(Component.text(""));
+        lore.add(can
+            ? Component.text("  ► Нажмите, чтобы купить").color(TextColor.color(0x55FF55))
+                .decoration(TextDecoration.ITALIC, false)
+            : Component.text("  ✗ Недостаточно Арисов").color(TextColor.color(0xFF4444))
+                .decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack scrapShopItem(long bal) {
+        long price = TrapkiBridge.scrapPrice();
+        ItemStack item = TrapkiBridge.createScrap();
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return item;
+        boolean can = bal >= price;
+
+        List<Component> lore = new ArrayList<>(meta.lore() != null ? meta.lore() : List.of());
+        lore.add(Component.text(""));
+        lore.add(Component.text("  Цена: ").color(TextColor.color(0x888888))
+            .decoration(TextDecoration.ITALIC, false)
+            .append(Component.text(fmt(price) + " ✦").color(TextColor.color(0xFF8000))
+                .decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false)));
+        lore.add(Component.text("  Баланс: ").color(TextColor.color(0x888888))
+            .decoration(TextDecoration.ITALIC, false)
+            .append(Component.text(fmt(bal) + " ✦")
+                .color(can ? TextColor.color(0x55FF55) : TextColor.color(0xFF4444))
+                .decoration(TextDecoration.ITALIC, false)));
+        lore.add(Component.text(""));
+        lore.add(can
+            ? Component.text("  ► Нажмите, чтобы купить").color(TextColor.color(0x55FF55))
+                .decoration(TextDecoration.ITALIC, false)
+            : Component.text("  ✗ Недостаточно Арисов").color(TextColor.color(0xFF4444))
+                .decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
     private void addNavRow(Inventory inv, TabKind active) {
-        // Нижний ряд: 45..53 — стекляшки + 6 кнопок навигации.
-        // Расположение: 45=стекло, 46=стекло, 47..52 = 6 кнопок, 53=стекло.
-        inv.setItem(45, navButton(Material.IRON_ORE,        "§6🏠 Приваты",     active == TabKind.PRIVATES));
-        inv.setItem(47, navButton(Material.TNT,             "§c💣 ТНТ",         active == TabKind.TNT));
-        inv.setItem(49, navButton(Material.TNT_MINECART,    "§6🚃 Вагонетки",   active == TabKind.MINECART));
-        inv.setItem(50, navButton(Material.MAGMA_CREAM,     "§d✦ Сферы",        active == TabKind.SPHERES));
-        inv.setItem(51, navButton(Material.HEART_OF_THE_SEA,"§d● Шары",         active == TabKind.BALLS));
-        inv.setItem(53, navButton(Material.GOLDEN_APPLE,    "§6★ Киты",         active == TabKind.KITS));
+        // Нижний ряд: 45..52 — 7 кнопок (пропуск 49), 53 — стекло.
+        inv.setItem(45, navButton(Material.IRON_ORE,        "§6Приваты",   active == TabKind.PRIVATES));
+        inv.setItem(46, navButton(Material.TNT,             "§cТНТ",        active == TabKind.TNT));
+        inv.setItem(47, navButton(Material.TNT_MINECART,    "§6Вагонетки", active == TabKind.MINECART));
+        inv.setItem(48, navButton(Material.MAGMA_CREAM,     "§d✦ Сферы",    active == TabKind.SPHERES));
+        inv.setItem(50, navButton(Material.HEART_OF_THE_SEA,"§d● Шары",     active == TabKind.BALLS));
+        inv.setItem(51, navButton(Material.GOLDEN_APPLE,    "§6★ Киты",     active == TabKind.KITS));
+        inv.setItem(52, navButton(Material.IRON_TRAPDOOR,   "§d⚠ Трапки",   active == TabKind.TRAPKI));
     }
 
     private ItemStack navButton(Material mat, String name, boolean active) {

@@ -577,6 +577,7 @@ kits:
       - { material: ENDER_PEARL, amount: 32 }
       - { material: FIREWORK_ROCKET, amount: 64 }
       - { sphere: phantom }
+      - { material: NETHERITE_SCRAP, amount: 8 }    # для трапок (Trapki)
       - name: "<grad:#FFD700:#FF8C00>★ Шалкер Ариса ★</grad>"
         material: ORANGE_SHULKER_BOX
         amount: 1
@@ -678,6 +679,7 @@ kits:
       - { material: ENDER_PEARL, amount: 64 }
       - { material: FIREWORK_ROCKET, amount: 64 }
       - { sphere: chaos }
+      - { material: NETHERITE_SCRAP, amount: 16 }   # для трапок (Trapki)
       - name: "<grad:#FF8C00:#FF1493>✦ Шалкер ArisPlus ✦</grad>"
         material: YELLOW_SHULKER_BOX
         amount: 1

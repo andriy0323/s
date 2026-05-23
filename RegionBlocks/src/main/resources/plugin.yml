@@ -4,7 +4,7 @@ main: me.regionblocks.RegionBlocks
 api-version: '1.21'
 description: Система регионов через специальные блоки + единый магазин (приваты/ТНТ/вагонетки/сферы/шары/киты)
 author: RegionBlocks
-softdepend: [ArisDonate]
+softdepend: [ArisDonate, Trapki]
 
 commands:
   ps:
