@@ -1,0 +1,26 @@
+name: Trapki
+version: 1.0.0
+main: me.trapki.TrapkiPlugin
+api-version: '1.21'
+description: 10 видов трапок (3×3 и 5×5), активируются обломком незерита.
+author: Trapki
+softdepend: [RegionBlocks, ArisDonate]
+
+commands:
+  trap:
+    description: Управление трапками (админ / интеграции с китами).
+    usage: |
+      /trap give <тип> <ник> [кол]  — выдать трапку
+      /trap scrap <ник> [кол]        — выдать обломок незерита
+      /trap list                      — список доступных типов
+      /trap reload                    — перезагрузить config.yml
+    permission: trapki.admin
+    aliases: [trapki]
+
+permissions:
+  trapki.admin:
+    description: Управление трапками (give, reload).
+    default: op
+  trapki.place:
+    description: Устанавливать трапки.
+    default: true
