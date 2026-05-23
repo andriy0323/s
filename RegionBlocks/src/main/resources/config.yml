@@ -49,3 +49,88 @@ shop:
     phoenix:   90000
     aris:     120000
     arisplus: 150000
+
+# ════════════════════════════════════════════════════════════════════
+# Текстуры голов (player heads) для иконок магазина.
+# ════════════════════════════════════════════════════════════════════
+# Каждое значение — это либо:
+#   1) 64-символьный hex-хеш текстуры (со страницы minecraft-heads.com
+#      → раздел «Texture URL» — берёшь часть после .../texture/), либо
+#   2) полная Mojang-base64 строка (со страницы minecraft-heads.com
+#      → раздел «For developers» → «Value»).
+#
+# Пустая строка → используется обычная PLAYER_HEAD без текстуры
+# (или fallback-материал из RU-названия). Кривая текстура не упадёт —
+# просто будет голова-Стив.
+#
+# ID совпадают с ID товаров. Чтобы быстро найти хороший вариант, иди
+# на https://minecraft-heads.com/custom-heads, копируй "Texture URL"
+# и вставляй сюда. После правки — /a reload.
+heads:
+  # Приваты
+  privates:
+    common:    ""
+    rare:      ""
+    epic:      ""
+    mythic:    ""
+    legendary: ""
+    aris:      ""
+  # ТНТ
+  tnt:
+    basic:  ""
+    strong: ""
+    mega:   ""
+    titan:  ""
+  # Вагонетки
+  minecart:
+    basic:  ""
+    strong: ""
+    mega:   ""
+    titan:  ""
+  # Сферы
+  spheres:
+    bounce:   ""
+    ember:    ""
+    owl:      ""
+    tide:     ""
+    force:    ""
+    bulwark:  ""
+    gale:     ""
+    vitality: ""
+  # Шары
+  balls:
+    nebula:  ""
+    cosmos:  ""
+    phoenix: ""
+    phantom: ""
+    chaos:   ""
+  # Киты
+  kits:
+    spark:    ""
+    luna:     ""
+    stellar:  ""
+    nova:     ""
+    comet:    ""
+    galaxy:   ""
+    nebula:   ""
+    cosmos:   ""
+    phoenix:  ""
+    aris:     ""
+    arisplus: ""
+  # Декор: навигация / инфо / баланс
+  nav:
+    privates:  ""
+    tnt:       ""
+    minecart:  ""
+    spheres:   ""
+    balls:     ""
+    kits:      ""
+  info:
+    privates:  ""
+    tnt:       ""
+    minecart:  ""
+    spheres:   ""
+    balls:     ""
+    kits:      ""
+  balance:     ""
+  ariscoin:    ""
